@@ -57,23 +57,36 @@ class FedSTaSCoordinator:
             S_h = compute_stratum_statistics(reconstructed, strata)
             N_h = {h: len(clients) for h, clients in strata.items()}
             m_h = neyman_allocation(N_h, S_h, self.config["clients_per_round"])
+            
+            if self.verbose:
+                print("\n[Stratification]")
+                for h, clients in strata.items():
+                    print(f"  Stratum {h}: N_h = {len(clients)}, S_h = {S_h[h]:.4f}, m_h = {m_h[h]}")
 
             # Step 4: Sample clients via importance sampling
             selected_clients_by_stratum = {}
+            if self.verbose:
+                print("\n[Client Selection]")
             for h, client_indices in strata.items():
                 if not client_indices or m_h[h] == 0:
                     continue
                 norms = [np.linalg.norm(reconstructed[k]) for k in client_indices]
                 selected = importance_sample(client_indices, norms, m_h[h])
                 selected_clients_by_stratum[h] = selected
+                if self.verbose:
+                    print(f"  Stratum {h}: selected {selected}")
             
             # Step 5: Collect privatized sample counts
             responses = []
+            if self.verbose:
+                print("\n[Sample Size Reporting]")
             for h, clients in selected_clients_by_stratum.items():
                 for k in clients:
                     n_k = len(self.client_datasets[k])
                     r_k = clip_and_fake(n_k, self.config["M"], self.config["alpha"])
                     responses.append(r_k)
+                    if self.verbose:
+                        print(f"  Client {k}: n_k = {n_k}, r_k = {r_k}")
             
             # Step 6: Estimate total sample count
             n_tilde = estimate_total_sample_size(responses, self.config["alpha"], self.config["M"])
@@ -82,6 +95,8 @@ class FedSTaSCoordinator:
 
             # Step 7: Train selected clients
             models_by_stratum = {}
+            if self.verbose:
+                print("\n[Local Training]")
             for h, clients in selected_clients_by_stratum.items():
                 local_models = []
                 for k in clients:
@@ -89,6 +104,8 @@ class FedSTaSCoordinator:
                     subset = sample_uniform_data(
                         self.client_datasets[k], p, seed=round_idx
                     )
+                    if self.verbose:
+                        print(f"  Client {k}: training on {len(subset)} samples")
                     updated_model = local_train(
                         model=model_copy,
                         dataset=subset,
