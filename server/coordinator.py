@@ -108,6 +108,11 @@ class FedSTaSCoordinator:
                     )
                     if self.verbose:
                         print(f"  Client {k}: training on {len(subset)} samples")
+                    if len(subset) == 0:
+                        if self.verbose:
+                            print(f"  Client {k}: skipped (0 samples)")
+                        continue
+                    
                     updated_model = local_train(
                         model=model_copy,
                         dataset=subset,

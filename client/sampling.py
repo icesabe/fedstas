@@ -15,7 +15,8 @@ def sample_uniform_data(dataset: Dataset, target_fraction: float, seed: Union[in
         Subset: A torch.utils.data.Subset with sampled indices
     """
     n = len(dataset)
-    sample_size = int(np.floor(n * target_fraction))
+    sample_size = max(1, int(np.floor(n * target_fraction)))
+    sample_size = min(sample_size, n)  # ensure we don't oversample
     rng = np.random.default_rng(seed)
     indices = rng.choice(n, size=sample_size, replace=False)
     return Subset(dataset, indices)
