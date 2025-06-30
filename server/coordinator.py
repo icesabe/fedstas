@@ -11,18 +11,22 @@ from server.stratification import (
 )
 from server.privacy import estimate_total_sample_size
 from server.aggregation import aggregate_models
+from utils.evals import evaluate_model
 
 class FedSTaSCoordinator:
     def __init__(
             self,
             global_model: torch.nn.Module,
             client_datasets: List[torch.utils.data.Dataset],
+            test_dataset,
             config: Dict,
             device: str = "cpu",
             verbose: bool = True
     ):
         self.global_model = global_model
         self.client_datasets = client_datasets
+        self.test_dataset = test_dataset
+        self.validation_curve = []
         self.device = device
         self.config = config
         self.num_clients = len(client_datasets)
@@ -37,7 +41,7 @@ class FedSTaSCoordinator:
     def run(self, num_rounds: int):
         for round_idx in range(num_rounds):
             print(f"\n=== Round {round_idx + 1} ===")
-            
+
             # === Step 1–3: Optional Re-stratification ===
             if round_idx == 0 or round_idx % self.restratify_every == 0:
                 if self.verbose:
@@ -143,3 +147,9 @@ class FedSTaSCoordinator:
             # Step 8: Aggregate updates
             self.global_model = aggregate_models(models_by_stratum, N_h, m_h)
             print("Aggregated global model updated.")
+
+            # Step 9: Evaluate (optional)
+            if self.test_dataset is not None:
+                acc = evaluate_model(self.global_model, self.test_dataset, device=self.device)
+                print(f"Validation accuracy: {acc*100:.2f}%")
+                self.validation_curve.append(acc)
