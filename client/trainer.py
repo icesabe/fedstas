@@ -52,3 +52,20 @@ def local_train(
             optimizer.step()
     
     return model
+
+
+def get_model_gradient(old_model: torch.nn.Module, new_model: torch.nn.Module) -> torch.Tensor:
+    """
+    Flatten and return the model difference (pseudo-gradient) as a single 1D tensor.
+
+    Args:
+        old_model (Module): The original global model before training
+        new_model (Module): The locally updated model
+
+    Returns:
+        Tensor: Flattened gradient-like vector (1D tensor)
+    """
+    diffs = []
+    for old_param, new_param in zip(old_model.parameters(), new_model.parameters()):
+        diffs.append((new_param.delta - old_param.data).flatten())
+    return torch.cat(diffs)
