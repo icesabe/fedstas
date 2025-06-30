@@ -55,3 +55,29 @@ def stratify_clients(gradients: List[np.ndarray], H: int, max_iter: int = 100) -
         mu = new_mu
     
     return strata
+
+
+def compute_stratum_statistics(gradients: List[np.ndarray], strata: Dict[int, List[int]]) -> Dict[int, float]:
+    """
+    Compute the average L2 deviation from the center for each stratum (S_h).
+
+    Args:
+        gradients (List[np.ndarray]): List of reconstructed gradients Z_k (each shape (d,))
+        strata (Dict[int, List[int]]): Mapping from stratum index h to list of client indices
+
+    Returns:
+        Dict[int, float]: Mapping from stratum index h to its variability S_h
+    """
+    S_h = {}
+    for h, client_indices in strata.items():
+        if not client_indices:
+            S_h[h] = 0.0
+            continue
+
+        Z_h = np.stack([gradients[k] for k in client_indices])
+        mu_h = np.mean(Z_h, axis=0)
+
+        deviations = np.linalg.norm(Z_h - mu_h, axis=1) # ||Z_k - mu_h|| for all k in stratum
+        S_h[h] = deviations.mean()
+
+    return S_h
