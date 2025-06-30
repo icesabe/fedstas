@@ -114,3 +114,35 @@ def neyman_allocation(N_h: Dict[int, int], S_h: Dict[int, float], m: int) -> Dic
             m_h[h] += 1
     
     return m_h
+
+
+def importance_sample(stratum_clients: List[int], norms: List[float], m_h: int, replace: bool = False) -> List[int]:
+    """
+    Importance sample m_h clients from a stratum using gradient norms as probabilities.
+
+    Args:
+        stratum_clients (List[int]): Indices of clients in the stratum
+        norms (List[float]): L2 norms of each client's gradient in the same order
+        m_h (int): Number of clients to sample
+        replace (bool): Whether to sample with replacement (default False)
+
+    Returns:
+        List[int]: Selected client indices (from stratum_clients)
+    """
+    assert len(stratum_clients) == len(norms), "Mismatch between clients and norm list"
+
+    norm_array = np.array(norms)
+    if np.sum(norm_array) == 0:
+        # If all norms are zero, fall back to uniform sampling
+        probs = np.ones(len(norm_array)) / len(norm_array)
+    else:
+        probs = norm_array / norm_array.sum()
+    
+    selected_indices = np.random.choice(
+        len(stratum_clients),
+        size=m_h,
+        replace=replace,
+        p=probs
+    )
+
+    return [stratum_clients[i] for i in selected_indices]
