@@ -27,37 +27,53 @@ class FedSTaSCoordinator:
         self.config = config
         self.num_clients = len(client_datasets)
         self.verbose = verbose
+        self.restratify_every = self.config.get("restratify_every", 1)
+        self.cached_strata = None
+        self.cached_standardized = None
+        self.cached_S_h = None
+        self.cached_N_h = None
+        self.cached_m_h = None
 
     def run(self, num_rounds: int):
         for round_idx in range(num_rounds):
             print(f"\n=== Round {round_idx + 1} ===")
-
-            # Step 1: Compress gradients (IS)
-            compressed_grads = []
-            for i, dataset in enumerate(self.client_datasets):
-                raw_grad = get_raw_update(self.global_model, dataset, device=self.device)
-                centroids, indices = compress_gradient(raw_grad, self.config["d_prime"])
-                compressed_grads.append((centroids, indices))
-                if self.verbose and i < 5:
-                    print(f"  Client {i}: ||raw_grad|| = {np.linalg.norm(raw_grad):.4f}")
-
             
-            # Step 2: Reconstruct gradients for stratification
-            reconstructed = [
-                decompress_gradient(c, i) for (c, i) in compressed_grads
-            ]
+            # === Step 1–3: Optional Re-stratification ===
+            if round_idx == 0 or round_idx % self.restratify_every == 0:
+                if self.verbose:
+                    print("\n[Stratification] (Recomputing gradients + clusters)")
 
-            # Step 2.5: Standardize gradients across clients
-            grad_matrix = np.stack(reconstructed)
-            mu = grad_matrix.mean(axis=0)
-            sigma = grad_matrix.std(axis=0) + 1e-8 # avoid divide-by-zero
-            standardized = [(g - mu) / sigma for g in reconstructed]
+                compressed_grads = []
+                for i, dataset in enumerate(self.client_datasets):
+                    raw_grad = get_raw_update(self.global_model, dataset, device=self.device)
+                    centroids, indices = compress_gradient(raw_grad, self.config["d_prime"])
+                    compressed_grads.append((centroids, indices))
+                    if self.verbose and i < 5:
+                        print(f"  Client {i}: ||raw_grad|| = {np.linalg.norm(raw_grad):.4f}")
 
-            # Step 3: Stratify clients
-            strata = stratify_clients(standardized, self.config["H"])
-            S_h = compute_stratum_statistics(standardized, strata)
-            N_h = {h: len(clients) for h, clients in strata.items()}
-            m_h = neyman_allocation(N_h, S_h, self.config["clients_per_round"])
+                # Step 2: Reconstruct and Standardize
+                reconstructed = [decompress_gradient(c, i) for (c, i) in compressed_grads]
+                grad_matrix = np.stack(reconstructed)
+                mu = grad_matrix.mean(axis=0)
+                sigma = grad_matrix.std(axis=0) + 1e-8
+                standardized = [(g - mu) / sigma for g in reconstructed]
+
+                # Step 3: Stratify
+                self.cached_strata = stratify_clients(standardized, self.config["H"])
+                self.cached_S_h = compute_stratum_statistics(standardized, self.cached_strata)
+                self.cached_N_h = {h: len(c) for h, c in self.cached_strata.items()}
+                self.cached_m_h = neyman_allocation(
+                    self.cached_N_h, self.cached_S_h, self.config["clients_per_round"]
+                )
+            else:
+                if self.verbose:
+                    print("\n[Stratification] (Using cached strata and allocations)")
+            
+            # Assign from cache
+            strata = self.cached_strata
+            S_h = self.cached_S_h
+            N_h = self.cached_N_h
+            m_h = self.cached_m_h
             
             if self.verbose:
                 print("\n[Stratification]")
