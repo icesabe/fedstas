@@ -69,3 +69,26 @@ def get_model_gradient(old_model: torch.nn.Module, new_model: torch.nn.Module) -
     for old_param, new_param in zip(old_model.parameters(), new_model.parameters()):
         diffs.append((new_param.data - old_param.data).flatten())
     return torch.cat(diffs)
+
+def get_raw_update(model, dataset, device="cpu"):
+    """
+    Compute raw gradient vector from one batch of data.
+    """
+    model = model.to(device)
+    model.train()
+    loader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=True)
+    x, y = next(iter(loader))
+    x, y = x.to(device), y.to(device)
+
+    model.zero_grad()
+    output = model(x)
+    loss = torch.nn.functional.cross_entropy(output, y)
+    loss.backward()
+
+    grads = []
+    for p in model.parameters():
+        if p.grad is not None:
+            grads.append(p.grad.flatten().detach().clone())
+        else:
+            grads.append(torch.zeros_like(p.data.flatten()))
+    return torch.cat(grads).cpu().numpy()

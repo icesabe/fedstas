@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from typing import List, Dict
 from client.compression import compress_gradient, decompress_gradient
-from client.trainer import local_train, get_model_gradient
+from client.trainer import local_train, get_raw_update
 from client.privacy import clip_and_fake
 from client.sampling import sample_uniform_data
 from server.stratification import (
@@ -35,19 +35,12 @@ class FedSTaSCoordinator:
             # Step 1: Compress gradients (IS)
             compressed_grads = []
             for i, dataset in enumerate(self.client_datasets):
-                dummy_model = self.global_model.to(self.device)
-                updated_model = local_train(
-                    model = dummy_model,
-                    dataset=dataset,
-                    epochs=1,
-                    batch_size=self.config["batch_size"],
-                    lr=self.config["lr"],
-                    sample_fraction=1.0, # Full data to simulate gradient
-                    device=self.device
-                )
-                grad = get_model_gradient(dummy_model, updated_model).cpu().numpy()
-                centroids, indices = compress_gradient(grad, self.config["d_prime"])
+                raw_grad = get_raw_update(self.global_model, dataset, device=self.device)
+                centroids, indices = compress_gradient(raw_grad, self.config["d_prime"])
                 compressed_grads.append((centroids, indices))
+                if self.verbose and i < 5:
+                    print(f"  Client {i}: ||raw_grad|| = {np.linalg.norm(raw_grad):.4f}")
+
             
             # Step 2: Reconstruct gradients for stratification
             reconstructed = [
@@ -112,7 +105,7 @@ class FedSTaSCoordinator:
                         if self.verbose:
                             print(f"  Client {k}: skipped (0 samples)")
                         continue
-                    
+
                     updated_model = local_train(
                         model=model_copy,
                         dataset=subset,
