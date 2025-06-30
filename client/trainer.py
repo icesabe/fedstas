@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 from torch.nn import Module
-from torch.optim import SGD
+from torch.optim import Adam
 from typing import Dict, Any
 
 from client.sampling import sample_uniform_data
@@ -13,7 +13,8 @@ def local_train(
         batch_size: int,
         lr: float,
         sample_fraction: float,
-        device: str = "cpu"
+        device: str = "cpu",
+        loss_fn = None
 ) -> Module:
     """
     Perform local training on a uniformly sampled subset of the dataset.
@@ -26,6 +27,7 @@ def local_train(
         lr (float): Learning rate for optimizer
         sample_fraction (float): Fraction of local data to train on (from server)
         device (str): 'cpu' or 'cuda'
+        loss_fn (callable, optional): Loss function (defaults to CrossEntropyLoss)
 
     Returns:
         Module: Updated local model after training
@@ -38,8 +40,8 @@ def local_train(
     loader = DataLoader(subset, batch_size=batch_size, shuffle=True)
 
     # Step 2: Set up optimizer and loss
-    optimizer = SGD(model.parameters(), lr=lr)
-    criterion = torch.nn.CrossEntropyLoss() # We can parametrize this
+    optimizer = Adam(model.parameters(), lr=lr)
+    criterion = loss_fn if loss_fn is not None else torch.nn.CrossEntropyLoss()
 
     # Step 3: Train
     for _ in range(epochs):
