@@ -18,13 +18,15 @@ class FedSTaSCoordinator:
             global_model: torch.nn.Module,
             client_datasets: List[torch.utils.data.Dataset],
             config: Dict,
-            device: str = "cpu"
+            device: str = "cpu",
+            verbose: bool = True
     ):
         self.global_model = global_model
         self.client_datasets = client_datasets
         self.device = device
         self.config = config
         self.num_clients = len(client_datasets)
+        self.verbose = verbose
 
     def run(self, num_rounds: int):
         for round_idx in range(num_rounds):
