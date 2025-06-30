@@ -144,9 +144,11 @@ def importance_sample(stratum_clients: List[int], norms: List[float], m_h: int, 
     else:
         probs = norm_array / norm_array.sum()
     
+    m_eff = min(m_h, len(stratum_clients))  # cap to available size
+
     selected_indices = np.random.choice(
         len(stratum_clients),
-        size=m_h,
+        size=m_eff,
         replace=replace,
         p=probs
     )
