@@ -27,7 +27,7 @@ def compress_gradient(gradient: np.ndarray, d_prime: int) -> Tuple[np.ndarray, n
 
     return centroids, indices
 
-def compress_gradient(centroids: np.ndarray, indices: np.ndarray) -> np.ndarray:
+def decompress_gradient(centroids: np.ndarray, indices: np.ndarray) -> np.ndarray:
     """
     Reconstruct the gradient vector from centroids and cluster assignments.
 
