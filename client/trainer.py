@@ -13,6 +13,7 @@ def local_train(
         batch_size: int,
         lr: float,
         sample_fraction: float,
+        weight_decay: float = 0.0,
         device: str = "cpu",
         loss_fn = None
 ) -> Module:
@@ -26,6 +27,7 @@ def local_train(
         batch_size (int): Batch size for training
         lr (float): Learning rate for optimizer
         sample_fraction (float): Fraction of local data to train on (from server)
+        weight_decay (float): L2 regularization coefficient for Adam optimizer
         device (str): 'cpu' or 'cuda'
         loss_fn (callable, optional): Loss function (defaults to CrossEntropyLoss)
 
@@ -40,7 +42,7 @@ def local_train(
     loader = DataLoader(subset, batch_size=batch_size, shuffle=True)
 
     # Step 2: Set up optimizer and loss
-    optimizer = Adam(model.parameters(), lr=lr)
+    optimizer = Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     criterion = loss_fn if loss_fn is not None else torch.nn.CrossEntropyLoss()
 
     # Step 3: Train

@@ -140,6 +140,7 @@ class FedSTaSCoordinator:
                         batch_size=self.config["batch_size"],
                         lr=self.config["lr"],
                         sample_fraction=1.0,
+                        weight_decay=self.config.get("weight_decay", 0.0),
                         device=self.device
                     )
                     local_models.append(updated_model)
