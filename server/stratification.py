@@ -99,6 +99,14 @@ def neyman_allocation(N_h: Dict[int, int], S_h: Dict[int, float], m: int) -> Dic
     weights = {h: N_h[h] * S_h[h] for h in N_h}
     total_weight = sum(weights.values())
 
+    if total_weight == 0 or np.isnan(total_weight):
+        # Fallback to uniform allocation
+        non_empty = [h for h in N_h if N_h[h] > 0]
+        alloc = {h: 0 for h in N_h}
+        for i, h in enumerate(non_empty[:m]):
+            alloc[h] += 1
+        return alloc
+
     # Allocate proportionally
     m_h = {h: int(np.floor(m * weights[h] / total_weight)) for h in N_h}
 
