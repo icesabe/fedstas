@@ -47,9 +47,15 @@ class FedSTaSCoordinator:
                 decompress_gradient(c, i) for (c, i) in compressed_grads
             ]
 
+            # Step 2.5: Standardize gradients across clients
+            grad_matrix = np.stack(reconstructed)
+            mu = grad_matrix.mean(axis=0)
+            sigma = grad_matrix.std(axis=0) + 1e-8 # avoid divide-by-zero
+            standardized = [(g - mu) / sigma for g in reconstructed]
+
             # Step 3: Stratify clients
-            strata = stratify_clients(reconstructed, self.config["H"])
-            S_h = compute_stratum_statistics(reconstructed, strata)
+            strata = stratify_clients(standardized, self.config["H"])
+            S_h = compute_stratum_statistics(standardized, strata)
             N_h = {h: len(clients) for h, clients in strata.items()}
             m_h = neyman_allocation(N_h, S_h, self.config["clients_per_round"])
             
