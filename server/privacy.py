@@ -13,4 +13,5 @@ def estimate_total_sample_size(responses: list[int], alpha: float, M: int) -> fl
     m = len(responses)
     total = sum(responses)
     adjustment = (1 - alpha) * (M * m / 2)
-    return (total - adjustment) / alpha
+    n_tilde = (total - adjustment) / alpha
+    return max(n_tilde, 1.0) # ensure positivity

@@ -77,7 +77,7 @@ class FedSTaSCoordinator:
             
             # Step 6: Estimate total sample count
             n_tilde = estimate_total_sample_size(responses, self.config["alpha"], self.config["M"])
-            p = self.config["n_star"] / max(n_tilde, 1e-6)
+            p = min(self.config["n_star"] / n_tilde, 1.0)
             print(f"Estimated ñ = {n_tilde:.2f}, using sampling ratio p = {p:.4f}")
 
             # Step 7: Train selected clients
