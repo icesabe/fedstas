@@ -75,10 +75,8 @@ def compute_stratum_statistics(gradients: List[np.ndarray], strata: Dict[int, Li
             continue
 
         Z_h = np.stack([gradients[k] for k in client_indices])
-        mu_h = np.mean(Z_h, axis=0)
-
-        deviations = np.linalg.norm(Z_h - mu_h, axis=1) # ||Z_k - mu_h|| for all k in stratum
-        S_h[h] = deviations.mean()
+        var = np.var(Z_h, axis=0)
+        S_h[h] = np.mean(var)
 
     return S_h
 
