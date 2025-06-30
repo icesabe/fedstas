@@ -81,3 +81,36 @@ def compute_stratum_statistics(gradients: List[np.ndarray], strata: Dict[int, Li
         S_h[h] = deviations.mean()
 
     return S_h
+
+
+def neyman_allocation(N_h: Dict[int, int], S_h: Dict[int, float], m: int) -> Dict[int, int]:
+    """
+    Allocate m samples across H strata using Neyman allocation.
+
+    Args:
+        N_h (Dict[int, int]): Number of clients in each stratum h
+        S_h (Dict[int, float]): Variability S_h for each stratum h
+        m (int): Total number of clients to sample
+
+    Returns:
+        Dict[int, int]: Number of clients to sample from each stratum h (m_h)
+    """
+    # Compute raw weights
+    weights = {h: N_h[h] * S_h[h] for h in N_h}
+    total_weight = sum(weights.values())
+
+    # Allocate proportionally
+    m_h = {h: int(np.floor(m * weights[h] / total_weight)) for h in N_h}
+
+    # Correction step: add remaining clients (due to rounding) to strata with largest remainder
+    remainder = m - sum(m_h.values())
+    if remainder > 0:
+        remainders = {
+            h: (m * weights[h] / total_weight) - m_h[h]
+            for h in N_h
+        }
+        top_up = sorted(remainders.items(), key=lambda x: -x[1])[:remainder]
+        for h, _ in top_up:
+            m_h[h] += 1
+    
+    return m_h
