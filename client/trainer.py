@@ -67,5 +67,5 @@ def get_model_gradient(old_model: torch.nn.Module, new_model: torch.nn.Module) -
     """
     diffs = []
     for old_param, new_param in zip(old_model.parameters(), new_model.parameters()):
-        diffs.append((new_param.delta - old_param.data).flatten())
+        diffs.append((new_param.data - old_param.data).flatten())
     return torch.cat(diffs)
