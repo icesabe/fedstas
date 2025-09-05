@@ -3,6 +3,36 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class FastCIFAR10CNN(nn.Module):
+    """Ultra-fast lightweight CNN model for CIFAR-10 (32x32x3 -> 10 classes)"""
+    
+    def __init__(self, num_classes=10):
+        super(FastCIFAR10CNN, self).__init__()
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)  # 32x32x3 -> 32x32x16
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)  # 32x32x16 -> 32x32x32
+        self.pool1 = nn.MaxPool2d(2, 2)  # 32x32 -> 16x16
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, padding=1)  # 16x16x32 -> 16x16x64
+        self.pool2 = nn.MaxPool2d(2, 2)  # 16x16 -> 8x8
+        self.fc1 = nn.Linear(64 * 8 * 8, 128)
+        self.fc2 = nn.Linear(128, num_classes)
+        
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = self.pool1(x)
+        
+        
+        x = F.relu(self.conv3(x))
+        x = self.pool2(x)
+        
+        # Flatten and classify
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        
+        return x
+
+
 class SimpleCIFAR10CNN(nn.Module):
     """Simple CNN model for CIFAR-10 (32x32x3 -> 10 classes)"""
     
@@ -101,8 +131,8 @@ class ResNet18CIFAR10(nn.Module):
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
-        for stride in strides:
-            layers.append(block(self.in_planes, planes, stride))
+        for s in strides:
+            layers.append(block(self.in_planes, planes, s))
             self.in_planes = planes * block.expansion
         return nn.Sequential(*layers)
     
@@ -118,23 +148,25 @@ class ResNet18CIFAR10(nn.Module):
         return out
 
 
-def create_model(model_type="simple_cnn", num_classes=10):
+def create_model(model_type="fast_cnn", num_classes=10):
     """
     Factory function to create CIFAR-10 models.
     
     Args:
-        model_type (str): Either "simple_cnn" or "resnet18"
+        model_type (str): Either "fast_cnn", "simple_cnn", or "resnet18"
         num_classes (int): Number of output classes (default: 10 for CIFAR-10)
     
     Returns:
         torch.nn.Module: The requested model
     """
-    if model_type.lower() == "simple_cnn":
+    if model_type.lower() == "fast_cnn":
+        return FastCIFAR10CNN(num_classes=num_classes)
+    elif model_type.lower() == "simple_cnn":
         return SimpleCIFAR10CNN(num_classes=num_classes)
     elif model_type.lower() == "resnet18":
         return ResNet18CIFAR10(num_classes=num_classes)
     else:
-        raise ValueError(f"Unknown model_type: {model_type}. Choose 'simple_cnn' or 'resnet18'")
+        raise ValueError(f"Unknown model_type: {model_type}. Choose 'fast_cnn', 'simple_cnn', or 'resnet18'")
 
 
 def count_parameters(model):
@@ -143,11 +175,17 @@ def count_parameters(model):
 
 
 if __name__ == "__main__":
-    # Test both models
+    # Test all models
     print("Testing CIFAR-10 models...")
     
     # Test input (batch_size=1, channels=3, height=32, width=32)
     test_input = torch.randn(1, 3, 32, 32)
+    
+    # Test Fast CNN
+    fast_model = create_model("fast_cnn")
+    fast_output = fast_model(test_input)
+    print(f"Fast CNN - Parameters: {count_parameters(fast_model):,}")
+    print(f"Fast CNN - Output shape: {fast_output.shape}")
     
     # Test Simple CNN
     simple_model = create_model("simple_cnn")

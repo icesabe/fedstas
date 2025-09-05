@@ -4,6 +4,7 @@ import sys
 import importlib
 
 # Step 1: Go to base dir and pull latest code
+'''
 os.chdir('/content')
 REPO_URL = "https://github.com/JaSlesso/fedstas.git"
 REPO_DIR = "fedstas"
@@ -22,7 +23,7 @@ for module in list(sys.modules):
 
 # Step 3: Enter the repo
 os.chdir(REPO_DIR)
-
+'''
 
 #Above is the code to run in google colab
 
@@ -36,7 +37,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 from server.coordinator import FedSTaSCoordinator
-from model.simple_cifar10 import create_model
+from model.cifar10 import create_model
 
 
 # -----------------------
@@ -44,17 +45,17 @@ from model.simple_cifar10 import create_model
 # -----------------------
 config = {
     "H": 5,
-    "d_prime": 10,           # slightly higher for CIFAR-10 complexity
+    "d_prime": 5,           # slightly higher for CIFAR-10 complexity
     "restratify_every": 5,
     "clients_per_round": 10,
     "M": 500,               # higher bound for CIFAR-10 datasets
-    "epsilon": 8.0,         # slightly lower for more privacy
-    "alpha": (np.exp(8.0) - 1) / (np.exp(8.0) + 499),  # adjusted for new M
-    "n_star": 500,          # higher target for CIFAR-10
-    "epochs": 5,            # more epochs for CIFAR-10
-    "batch_size": 64,       # larger batch size
+    "epsilon": 10.0,         # slightly lower for more privacy
+    "alpha": (np.exp(10.0) - 1) / (np.exp(10.0) + 99),  # adjusted for new M
+    "n_star": 200,          # higher target for CIFAR-10
+    "epochs": 3,            # more epochs for CIFAR-10
+    "batch_size": 32,       # larger batch size
     "lr": 0.001,
-    "weight_decay": 1e-4,   # slightly higher regularization
+    "weight_decay": 1e-5,   # slightly higher regularization
     "verbose": True
 }
 
@@ -107,8 +108,8 @@ print(f"Dataset sizes: {[len(ds) for ds in client_datasets[:5]]}...")  # Show fi
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-# Choose model type: "simple_cnn" or "resnet18"
-MODEL_TYPE = "simple_cnn"  # Change to "resnet18" for ResNet-18
+# Choose model type: "fast_cnn", "simple_cnn", or "resnet18"
+MODEL_TYPE = "fast_cnn"  # Changed to fast_cnn for ultra-fast computation
 global_model = create_model(MODEL_TYPE, num_classes=10)
 
 print(f"Using {MODEL_TYPE} model")
@@ -133,33 +134,33 @@ coordinator.run(num_rounds=25)  # More rounds for CIFAR-10
 # -----------------------
 # Plot Results
 # -----------------------
-plt.figure(figsize=(15, 5))
+plt.figure(figsize=(12, 5))
 
 # Plot validation accuracy
-plt.subplot(1, 3, 1)
+plt.subplot(1, 2, 1)
 plt.plot(coordinator.validation_curve, 'b-', linewidth=2)
 plt.title(f"CIFAR-10 Validation Accuracy ({MODEL_TYPE})")
 plt.xlabel("Round")
 plt.ylabel("Accuracy")
-plt.grid(True, alpha=0.3)
+plt.grid(True)
 plt.ylim(0, 1)
 
 # Plot validation loss
-plt.subplot(1, 3, 2)
+plt.subplot(1, 2, 2)
 plt.plot(coordinator.validation_loss_curve, 'r-', linewidth=2)
 plt.title(f"CIFAR-10 Validation Loss ({MODEL_TYPE})")
 plt.xlabel("Round")
 plt.ylabel("Cross-Entropy Loss")
-plt.grid(True, alpha=0.3)
+plt.grid(True)
 
 # Plot dataset distribution (first 10 clients)
-plt.subplot(1, 3, 3)
+plt.subplot(1, 2, 3)
 client_sizes = [len(ds) for ds in client_datasets[:10]]
 plt.bar(range(10), client_sizes)
 plt.title("Dataset Sizes (First 10 Clients)")
 plt.xlabel("Client Index")
 plt.ylabel("Number of Samples")
-plt.grid(True, alpha=0.3)
+plt.grid(True)
 
 plt.tight_layout()
 plt.show()
@@ -173,3 +174,5 @@ if coordinator.validation_curve:
     print(f"Best Accuracy: {best_accuracy*100:.2f}%")
     print(f"Model: {MODEL_TYPE}")
     print(f"Total Rounds: {len(coordinator.validation_curve)}")
+    print(f"\nNote: This {MODEL_TYPE} model is optimized for fast computation to compare federated learning methods.")
+    print(f"Accuracy is not the primary concern - speed and method comparison are the goals.")

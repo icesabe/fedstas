@@ -2,7 +2,7 @@
 import os
 import sys
 import importlib
-
+'''
 # Step 1: Go to base dir and pull latest code
 os.chdir('/content')
 REPO_URL = "https://github.com/JaSlesso/fedstas.git"
@@ -23,7 +23,7 @@ for module in list(sys.modules):
 # Step 3: Enter the repo
 os.chdir(REPO_DIR)
 
-
+'''
 #Above is the code to run in google colab
 
 
@@ -51,7 +51,7 @@ config = {
     "d_prime": 5,
     "restratify_every": 5,  # slightly more frequent
     "clients_per_round": 10,
-    "M": 100,
+    "M": 500,
     "epsilon": 10.0,
     "alpha": (np.exp(10.0) - 1) / (np.exp(10.0) + 99),
     "n_star": 200,          # reduce to trigger subsampling
